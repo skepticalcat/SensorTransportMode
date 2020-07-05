@@ -1,7 +1,10 @@
 import os
 import pickle
+from collections import Counter
+
 import pandas as pd
 import numpy as np
+import torch
 from sklearn.preprocessing import StandardScaler
 
 
@@ -114,6 +117,20 @@ class FeatureBuilder:
             _motion.extend(motion)
         return _motion
 
+    def df_to_lstm_tensors(self, motions):
+        examples = []
+        cols = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        for lstm_example in motions:
+            cnn_tensors, cnn_labels = [], []
+            for name, group in lstm_example:
+                if len(group) < self.sample_rate * self.window_size_cnn:
+                    continue
+                label = Counter(group.iloc[:, -1].values).most_common(1)[0][0]
+                cnn_tensors.append(torch.tensor(group.iloc[:, cols].values, dtype=torch.float))
+                cnn_labels.append(torch.tensor(label, dtype=torch.long))
+            examples.append((torch.stack(cnn_tensors), torch.stack(cnn_labels)))
+        self._write_pickle(examples, "lstm_examples_25_3_10")
+
     def _write_pickle(self, obj, name):
         with open(name+'.pickle', 'wb') as handle:
             pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -125,4 +142,4 @@ class FeatureBuilder:
 
 fb = FeatureBuilder("H:\SHLDataset_User1Hips_v1\\release\\User1", 25, 3, 10*60)
 fb.raw_data_to_cleaned_df()
-fb.clean_data()
+fb.df_to_lstm_tensors(fb.clean_data())
