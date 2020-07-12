@@ -1,3 +1,5 @@
+import pickle
+
 import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, Subset
@@ -5,8 +7,9 @@ from torch.utils.data import Dataset, Subset
 
 class SensorDataset(Dataset):
 
-    def __init__(self, examples):
-        self.examples = examples
+    def __init__(self, pickle_name):
+        with open(pickle_name+'.pickle', 'rb') as handle:
+            self.examples = pickle.load(handle)
 
     def __len__(self):
         return len(self.examples)

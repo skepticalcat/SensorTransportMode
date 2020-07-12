@@ -121,6 +121,8 @@ class FeatureBuilder:
         examples = []
         cols = [1, 2, 3, 4, 5, 6, 7, 8, 9]
         for lstm_example in motions:
+            if len(lstm_example) < 600/3:
+                continue
             cnn_tensors, cnn_labels = [], []
             for name, group in lstm_example:
                 if len(group) < self.sample_rate * self.window_size_cnn:
