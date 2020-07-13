@@ -3,6 +3,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 
 from SensorDataset import SensorDataset
+from TestValidate import TestValidate
 from models import CNNwithLSTM
 
 net = CNNwithLSTM()
@@ -25,10 +26,15 @@ losses = []
 val_acc = []
 running_loss_logger = 0
 running_loss = 0
-for epoch in range(25):
+
+testval = TestValidate(device,batch_size,criterion,net)
+
+r = 0
+for epoch in range(30):
 
     for i, data in enumerate(dataloaders["train"]):
-        i += 1
+        r+=1
+        i+=1
         inputs, labels = data["frame"], data["labels"]
         inputs = inputs.to(device)
 
@@ -42,15 +48,15 @@ for epoch in range(25):
 
         # torch.nn.utils.clip_grad_norm_(net.parameters(), 0.5)
         optimizer.step()
-        # print(loss.item())
-        # print statistics
+
         running_loss += loss.item()
         running_loss_logger += loss.item()
         if i % 10 == 0:
             losses.append(running_loss_logger / 10)
             running_loss_logger = 0
-        if i % 10 == 0:  # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 100))
-            # print(net.conv1.weight.grad)
-            running_loss = 0.0
+            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
+        if r % 500 == 0:  # print every 2000 mini-batches
+            testval.test(dataloaders["val"])
+
+testval.test(dataloaders["test"])
+#Null=0, Still=1, Walking=2, Run=3, Bike=4, Car=5, Bus=6, Train=7, Subway=8
