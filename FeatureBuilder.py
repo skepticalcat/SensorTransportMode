@@ -81,6 +81,7 @@ class FeatureBuilder:
             if cnt >= abort_after:
                 self._write_pickle(data, "cleaned_raw_data")
                 self.motions = data
+                break
             cnt += 1
         self.motions = data
 
@@ -112,6 +113,8 @@ class FeatureBuilder:
         _motion = []
         for motion in self.motions:
             motion = self.extract_at_hz(motion, self.sample_rate)
+            if len(motion) < 600:
+                continue
             motion = self.normalize(motion)
             motion = self.segment(motion, self.window_size_cnn, self.window_size_lstm, self.sample_rate)
             _motion.extend(motion)
@@ -143,5 +146,5 @@ class FeatureBuilder:
 
 
 fb = FeatureBuilder("H:\SHLDataset_User1Hips_v1\\release\\User1", 25, 3, 10*60)
-fb.raw_data_to_cleaned_df()
+fb.raw_data_to_cleaned_df(50)
 fb.df_to_lstm_tensors(fb.clean_data())
