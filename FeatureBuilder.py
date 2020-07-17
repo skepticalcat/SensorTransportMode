@@ -1,12 +1,12 @@
 import os
 import pickle
-from collections import Counter
-
 import pandas as pd
 import numpy as np
 import torch
-from sklearn.preprocessing import StandardScaler
+import sys
 
+from collections import Counter
+from sklearn.preprocessing import StandardScaler
 
 class FeatureBuilder:
 
@@ -72,8 +72,11 @@ class FeatureBuilder:
 
     def raw_data_to_cleaned_df(self, abort_after=25, force_repickle=False):
         if not force_repickle:
-            self.motions = self._load_data("cleaned_raw_data")
-            return
+            if os.path.isfile("cleaned_raw_data.pickle"):
+                self.motions = self._load_data("cleaned_raw_data")
+                return
+            else:
+                print("No pickle found, creating")
         cnt = 0
         data = []
         for motion in self.recordings():
@@ -87,7 +90,6 @@ class FeatureBuilder:
 
     def extract_at_hz(self, motion, hz):
         # dataset is sampled with 100Hz
-        # with e.g., hz = 25 we need 100/25 = every fourth entry
         rate = 100//hz
         motion = motion.iloc[::rate, :]
         motion = motion.reset_index(drop=True)
@@ -134,7 +136,9 @@ class FeatureBuilder:
                 cnn_tensors.append(torch.tensor(group.iloc[:, cols].values, dtype=torch.float))
                 cnn_labels.append(torch.tensor(label, dtype=torch.long))
             examples.append((torch.stack(cnn_tensors), torch.stack(cnn_labels)))
-        self._write_pickle(examples, "lstm_examples_25_3_10")
+        self._write_pickle(examples, "lstm_examples_{}_{}_{}".format(self.sample_rate,
+                                                                     self.window_size_cnn,
+                                                                     self.window_size_lstm))
 
     def _write_pickle(self, obj, name):
         with open(name+'.pickle', 'wb') as handle:
@@ -144,7 +148,24 @@ class FeatureBuilder:
         with open(name+'.pickle', 'rb') as handle:
             return pickle.load(handle)
 
+if __name__ == '__main__':
 
-fb = FeatureBuilder("H:\SHLDataset_User1Hips_v1\\release\\User1", 25, 3, 10*60)
-fb.raw_data_to_cleaned_df(50)
-fb.df_to_lstm_tensors(fb.clean_data())
+    if len(sys.argv) < 7:
+        print("""Usage: python FeatureBuilder.py path/to/SHLDataset_User1Hips_v1/release/User1 
+        sample_rate cnn_window_size_sec lstm_window_size_sec num_of_files_to_load boolean_force_reload
+        
+        Example:
+        python FeatureBuilder.py /home/xyz/SHLData/User1 25 3 600 50 False
+        
+        """)
+
+    path = sys.argv[1]
+    sample_rate = int(sys.argv[2])
+    cnn_window_size_sec = int(sys.argv[3])
+    lstm_window_size_sec = int(sys.argv[4])
+    abort_loading_after_n_files = int(sys.argv[5])
+    force_reload_of_files = bool(sys.argv[6])
+
+    fb = FeatureBuilder(path, sample_rate, cnn_window_size_sec, lstm_window_size_sec)
+    fb.raw_data_to_cleaned_df(abort_loading_after_n_files,force_reload_of_files)
+    fb.df_to_lstm_tensors(fb.clean_data())

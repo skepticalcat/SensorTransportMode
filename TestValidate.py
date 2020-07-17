@@ -3,11 +3,12 @@ import numpy as np
 
 class TestValidate:
 
-    def __init__(self, device, batch_size, criterion, net):
+    def __init__(self, device, batch_size, criterion, net, trip_dim):
         self.device = device
         self.batch_size = batch_size
         self.criterion = criterion
         self.net = net
+        self.trip_dim = trip_dim
 
     def test(self, dataloader):
         def score_to_modality(scores: torch.Tensor):
@@ -29,13 +30,10 @@ class TestValidate:
                 inputs = inputs.to(self.device)
 
                 outputs = self.net(inputs)
-
-                labels = labels.view(self.batch_size * (600 // 3), -1).squeeze(1).long().to(self.device)
-                loss = self.criterion(outputs.view(self.batch_size * (600 // 3), -1), labels)
-
+                labels = labels.view(self.batch_size * self.trip_dim, -1).squeeze(1).long().to(self.device)
+                loss = self.criterion(outputs.view(self.batch_size * self.trip_dim, -1), labels)
                 val_losses.append(loss.item())
-
-                predicted = score_to_modality(outputs.view(self.batch_size * (600 // 3), -1))
+                predicted = score_to_modality(outputs.view(self.batch_size * self.trip_dim, -1))
 
                 for o, elem in enumerate(predicted):
                     total_per_mode[int(labels[o])] += 1
@@ -56,4 +54,5 @@ class TestValidate:
             print("Mode-correct:")
             print(total_per_mode)
             print(mode_statistics)
+            print("Null=0, Still=1, Walking=2, Run=3, Bike=4, Car=5, Bus=6, Train=7, Subway=8")
 

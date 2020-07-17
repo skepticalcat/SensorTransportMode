@@ -41,7 +41,6 @@ class CNNwithLSTM(nn.Module):
             input_size=128,
             hidden_size=64,
             num_layers=1,
-            dropout=0.2,
             batch_first=True)
         self.linear = nn.Linear(64, 9)
 
@@ -51,7 +50,6 @@ class CNNwithLSTM(nn.Module):
         c_out = self.cnn(c_in)
         r_in = c_out.view(batch_size, timesteps, -1)
         r_out, (h_n, h_c) = self.rnn(r_in)
-        #r_out2 = self.linear(r_out[:, -1, :])
 
         outs = []
         for point in r_out:
